@@ -1,0 +1,11 @@
+@import 'h2';
+
+body {
+    background: url('@img/download.jfif') center center/cover no-repeat;
+}
+
+.getto {
+    display: grid;
+    justify-content: space-between;
+    align-items: center;
+}

@@ -1,0 +1,14 @@
+h2 {
+  color: aliceblue;
+}
+
+body {
+  background: url("../img/download.jfif") center center/cover no-repeat;
+}
+
+.getto {
+  display: -ms-grid;
+  display: grid;
+  justify-content: space-between;
+  align-items: center;
+}

@@ -28,7 +28,7 @@ function watcher(){
     gulp.watch(path.watch.files, copy).on('change', browsersync.reload);
     gulp.watch(path.watch.html, html).on('change', browsersync.reload);
     gulp.watch(path.watch.css, style).on('change', browsersync.reload);
-    gulp.watch(path.watch.js, scripts).on('change', browsersync);
+    gulp.watch(path.watch.js, scripts).on('change', browsersync.reload);
 }
 
 //основные таски

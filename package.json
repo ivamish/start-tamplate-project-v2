@@ -1,6 +1,6 @@
 {
-  "name": "star-tamplate-project",
-  "version": "1.0.0",
+  "name": "libra-ui",
+  "version": "0.0.1",
   "description": "gulp, webpack, sass/scss",
   "main": "index.js",
   "type": "module",
@@ -34,6 +34,11 @@
   "dependencies": {
     "@babel/core": "^7.17.5",
     "@babel/preset-env": "^7.16.11",
-    "babel-loader": "^8.2.3"
-  }
+    "babel-loader": "^8.2.3",
+    "core-js": "^3.21.1"
+  },
+  "keywords": [
+    "js",
+    "javascript"
+  ]
 }

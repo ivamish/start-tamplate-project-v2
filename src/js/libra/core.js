@@ -3,6 +3,11 @@ const init = function(selector){
         return this;
     }
 
+    if(selector.tagName){
+        this[0] = selector;
+        return this;
+    }
+
     Object.assign(this, document.querySelectorAll(selector));
     this.length = document.querySelectorAll(selector).length;
 

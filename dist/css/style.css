@@ -2,13 +2,6 @@ h2 {
   color: blueviolet;
 }
 
-body {
-  background: url("../img/download.jfif") center center/cover no-repeat;
-}
-
-.getto {
-  display: -ms-grid;
-  display: grid;
-  justify-content: space-between;
-  align-items: center;
+.active {
+  background-color: aqua;
 }

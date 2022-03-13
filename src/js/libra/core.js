@@ -5,6 +5,7 @@ const init = function(selector){
 
     if(selector.tagName){
         this[0] = selector;
+        this.length = 1;
         return this;
     }
 

@@ -2904,6 +2904,50 @@ module.exports = {
 
 /***/ }),
 
+/***/ "./node_modules/core-js/internals/string-repeat.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/core-js/internals/string-repeat.js ***!
+  \*********************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
+var global = __webpack_require__(/*! ../internals/global */ "./node_modules/core-js/internals/global.js");
+var toIntegerOrInfinity = __webpack_require__(/*! ../internals/to-integer-or-infinity */ "./node_modules/core-js/internals/to-integer-or-infinity.js");
+var toString = __webpack_require__(/*! ../internals/to-string */ "./node_modules/core-js/internals/to-string.js");
+var requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ "./node_modules/core-js/internals/require-object-coercible.js");
+
+var RangeError = global.RangeError;
+
+// `String.prototype.repeat` method implementation
+// https://tc39.es/ecma262/#sec-string.prototype.repeat
+module.exports = function repeat(count) {
+  var str = toString(requireObjectCoercible(this));
+  var result = '';
+  var n = toIntegerOrInfinity(count);
+  if (n < 0 || n == Infinity) throw RangeError('Wrong number of repetitions');
+  for (;n > 0; (n >>>= 1) && (str += str)) if (n & 1) result += str;
+  return result;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/core-js/internals/this-number-value.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/core-js/internals/this-number-value.js ***!
+  \*************************************************************/
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+var uncurryThis = __webpack_require__(/*! ../internals/function-uncurry-this */ "./node_modules/core-js/internals/function-uncurry-this.js");
+
+// `thisNumberValue` abstract operation
+// https://tc39.es/ecma262/#sec-thisnumbervalue
+module.exports = uncurryThis(1.0.valueOf);
+
+
+/***/ }),
+
 /***/ "./node_modules/core-js/internals/to-absolute-index.js":
 /*!*************************************************************!*\
   !*** ./node_modules/core-js/internals/to-absolute-index.js ***!
@@ -3446,6 +3490,149 @@ if (DESCRIPTORS && !FUNCTION_NAME_EXISTS) {
     }
   });
 }
+
+
+/***/ }),
+
+/***/ "./node_modules/core-js/modules/es.number.to-fixed.js":
+/*!************************************************************!*\
+  !*** ./node_modules/core-js/modules/es.number.to-fixed.js ***!
+  \************************************************************/
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
+var $ = __webpack_require__(/*! ../internals/export */ "./node_modules/core-js/internals/export.js");
+var global = __webpack_require__(/*! ../internals/global */ "./node_modules/core-js/internals/global.js");
+var uncurryThis = __webpack_require__(/*! ../internals/function-uncurry-this */ "./node_modules/core-js/internals/function-uncurry-this.js");
+var toIntegerOrInfinity = __webpack_require__(/*! ../internals/to-integer-or-infinity */ "./node_modules/core-js/internals/to-integer-or-infinity.js");
+var thisNumberValue = __webpack_require__(/*! ../internals/this-number-value */ "./node_modules/core-js/internals/this-number-value.js");
+var $repeat = __webpack_require__(/*! ../internals/string-repeat */ "./node_modules/core-js/internals/string-repeat.js");
+var fails = __webpack_require__(/*! ../internals/fails */ "./node_modules/core-js/internals/fails.js");
+
+var RangeError = global.RangeError;
+var String = global.String;
+var floor = Math.floor;
+var repeat = uncurryThis($repeat);
+var stringSlice = uncurryThis(''.slice);
+var un$ToFixed = uncurryThis(1.0.toFixed);
+
+var pow = function (x, n, acc) {
+  return n === 0 ? acc : n % 2 === 1 ? pow(x, n - 1, acc * x) : pow(x * x, n / 2, acc);
+};
+
+var log = function (x) {
+  var n = 0;
+  var x2 = x;
+  while (x2 >= 4096) {
+    n += 12;
+    x2 /= 4096;
+  }
+  while (x2 >= 2) {
+    n += 1;
+    x2 /= 2;
+  } return n;
+};
+
+var multiply = function (data, n, c) {
+  var index = -1;
+  var c2 = c;
+  while (++index < 6) {
+    c2 += n * data[index];
+    data[index] = c2 % 1e7;
+    c2 = floor(c2 / 1e7);
+  }
+};
+
+var divide = function (data, n) {
+  var index = 6;
+  var c = 0;
+  while (--index >= 0) {
+    c += data[index];
+    data[index] = floor(c / n);
+    c = (c % n) * 1e7;
+  }
+};
+
+var dataToString = function (data) {
+  var index = 6;
+  var s = '';
+  while (--index >= 0) {
+    if (s !== '' || index === 0 || data[index] !== 0) {
+      var t = String(data[index]);
+      s = s === '' ? t : s + repeat('0', 7 - t.length) + t;
+    }
+  } return s;
+};
+
+var FORCED = fails(function () {
+  return un$ToFixed(0.00008, 3) !== '0.000' ||
+    un$ToFixed(0.9, 0) !== '1' ||
+    un$ToFixed(1.255, 2) !== '1.25' ||
+    un$ToFixed(1000000000000000128.0, 0) !== '1000000000000000128';
+}) || !fails(function () {
+  // V8 ~ Android 4.3-
+  un$ToFixed({});
+});
+
+// `Number.prototype.toFixed` method
+// https://tc39.es/ecma262/#sec-number.prototype.tofixed
+$({ target: 'Number', proto: true, forced: FORCED }, {
+  toFixed: function toFixed(fractionDigits) {
+    var number = thisNumberValue(this);
+    var fractDigits = toIntegerOrInfinity(fractionDigits);
+    var data = [0, 0, 0, 0, 0, 0];
+    var sign = '';
+    var result = '0';
+    var e, z, j, k;
+
+    // TODO: ES2018 increased the maximum number of fraction digits to 100, need to improve the implementation
+    if (fractDigits < 0 || fractDigits > 20) throw RangeError('Incorrect fraction digits');
+    // eslint-disable-next-line no-self-compare -- NaN check
+    if (number != number) return 'NaN';
+    if (number <= -1e21 || number >= 1e21) return String(number);
+    if (number < 0) {
+      sign = '-';
+      number = -number;
+    }
+    if (number > 1e-21) {
+      e = log(number * pow(2, 69, 1)) - 69;
+      z = e < 0 ? number * pow(2, -e, 1) : number / pow(2, e, 1);
+      z *= 0x10000000000000;
+      e = 52 - e;
+      if (e > 0) {
+        multiply(data, 0, z);
+        j = fractDigits;
+        while (j >= 7) {
+          multiply(data, 1e7, 0);
+          j -= 7;
+        }
+        multiply(data, pow(10, j, 1), 0);
+        j = e - 1;
+        while (j >= 23) {
+          divide(data, 1 << 23);
+          j -= 23;
+        }
+        divide(data, 1 << j);
+        multiply(data, 1, 1);
+        divide(data, 2);
+        result = dataToString(data);
+      } else {
+        multiply(data, 0, z);
+        multiply(data, 1 << -e, 0);
+        result = dataToString(data) + repeat('0', fractDigits);
+      }
+    }
+    if (fractDigits > 0) {
+      k = result.length;
+      result = sign + (k <= fractDigits
+        ? '0.' + repeat('0', fractDigits - k) + result
+        : stringSlice(result, 0, k - fractDigits) + '.' + stringSlice(result, k - fractDigits));
+    } else {
+      result = sign + result;
+    } return result;
+  }
+});
 
 
 /***/ }),
@@ -4074,6 +4261,30 @@ handlePrototype(DOMTokenListPrototype, 'DOMTokenList');
 
 /***/ }),
 
+/***/ "./src/js/libra/components/dropdown.js":
+/*!*********************************************!*\
+  !*** ./src/js/libra/components/dropdown.js ***!
+  \*********************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _core_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core.js */ "./src/js/libra/core.js");
+
+
+_core_js__WEBPACK_IMPORTED_MODULE_0__.$.prototype.dropdown = function (listSelector) {
+  for (var i = 0; i < this.length; i++) {
+    (0,_core_js__WEBPACK_IMPORTED_MODULE_0__.$)(listSelector).hide();
+    (0,_core_js__WEBPACK_IMPORTED_MODULE_0__.$)(this[i]).click(function () {
+      (0,_core_js__WEBPACK_IMPORTED_MODULE_0__.$)(listSelector).fadeToggle(200);
+    });
+  }
+};
+
+(0,_core_js__WEBPACK_IMPORTED_MODULE_0__.$)('.dropdown-btn').dropdown('.dropdown-list');
+
+/***/ }),
+
 /***/ "./src/js/libra/core.js":
 /*!******************************!*\
   !*** ./src/js/libra/core.js ***!
@@ -4131,6 +4342,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _modules_listeners_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./modules/listeners.js */ "./src/js/libra/modules/listeners.js");
 /* harmony import */ var _modules_actions_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./modules/actions.js */ "./src/js/libra/modules/actions.js");
 /* harmony import */ var _modules_effects_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./modules/effects.js */ "./src/js/libra/modules/effects.js");
+/* harmony import */ var _components_dropdown_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./components/dropdown.js */ "./src/js/libra/components/dropdown.js");
+
 
 
 
@@ -4423,8 +4636,87 @@ _core_js__WEBPACK_IMPORTED_MODULE_0__.$.prototype.show = function () {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _core_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core.js */ "./src/js/libra/core.js");
+/* harmony import */ var core_js_modules_es_number_to_fixed_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! core-js/modules/es.number.to-fixed.js */ "./node_modules/core-js/modules/es.number.to-fixed.js");
+/* harmony import */ var _core_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../core.js */ "./src/js/libra/core.js");
 
+
+
+_core_js__WEBPACK_IMPORTED_MODULE_1__.$.prototype.timeOver = function (dur, cb, fin) {
+  var timestart;
+
+  function _timeOver(time) {
+    if (!timestart) {
+      timestart = time;
+    }
+
+    var elepsed = time - timestart,
+        complection = Math.min((elepsed / dur).toFixed(1), 1);
+    cb(complection);
+
+    if (elepsed < dur) {
+      requestAnimationFrame(_timeOver);
+    } else {
+      if (typeof fin === 'function') {
+        fin();
+      }
+    }
+  }
+
+  return _timeOver;
+};
+
+_core_js__WEBPACK_IMPORTED_MODULE_1__.$.prototype.fadeIn = function (dur, display) {
+  var _this = this;
+
+  var _loop = function _loop(i) {
+    var changeOpacity = function changeOpacity(complection) {
+      _this[i].style.display = display || 'block';
+      _this[i].style.opacity = 0 + complection;
+    };
+
+    var ani = _this.timeOver(dur, changeOpacity, function () {});
+
+    requestAnimationFrame(ani);
+  };
+
+  for (var i = 0; i < this.length; i++) {
+    _loop(i);
+  }
+
+  return this;
+};
+
+_core_js__WEBPACK_IMPORTED_MODULE_1__.$.prototype.fadeOut = function (dur) {
+  var _this2 = this;
+
+  var _loop2 = function _loop2(i) {
+    var changeOpacity = function changeOpacity(complection) {
+      _this2[i].style.opacity = 1 - complection;
+    };
+
+    var ani = _this2.timeOver(dur, changeOpacity, function () {
+      _this2[i].style.display = 'none';
+    });
+
+    requestAnimationFrame(ani);
+  };
+
+  for (var i = 0; i < this.length; i++) {
+    _loop2(i);
+  }
+
+  return this;
+};
+
+_core_js__WEBPACK_IMPORTED_MODULE_1__.$.prototype.fadeToggle = function (dur) {
+  for (var i = 0; i < this.length; i++) {
+    if (window.getComputedStyle(this[i]).getPropertyValue('display') != 'none') {
+      (0,_core_js__WEBPACK_IMPORTED_MODULE_1__.$)(this[i]).fadeOut(dur);
+    } else {
+      (0,_core_js__WEBPACK_IMPORTED_MODULE_1__.$)(this[i]).fadeIn(dur);
+    }
+  }
+};
 
 /***/ }),
 
@@ -4548,10 +4840,11 @@ var __webpack_exports__ = {};
   \************************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _libra_lib_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./libra/lib.js */ "./src/js/libra/lib.js");
- // $('div').eq(0).find('.some').hide();
-// console.log($('.some'));
 
-console.log((0,_libra_lib_js__WEBPACK_IMPORTED_MODULE_0__["default"])('.some').eq(3).siblings());
+(0,_libra_lib_js__WEBPACK_IMPORTED_MODULE_0__["default"])('.btn').on('click', function (e) {
+  e.preventDefault();
+  (0,_libra_lib_js__WEBPACK_IMPORTED_MODULE_0__["default"])('.title').fadeToggle(500);
+});
 })();
 
 /******/ })()
